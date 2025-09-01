@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Habit Tracker | Your Progress Companion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              midnight: '#0F172A',
+              'deep-blue': '#1E293B',
+              navy: '#1E40AF',
+              royal: '#3B82F6',
+              gold: '#F59E0B',
+              platinum: '#E5E7EB',
+              success: '#10B981',
+              glass: 'rgba(255, 255, 255, 0.1)',
+              'glass-dark': 'rgba(0, 0, 0, 0.2)',
+            },
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+            },
+          },
+        },
+      };
+    </script>
+    <style type="text/css">
+      * {
+        font-family: 'Inter', 'system-ui', sans-serif;
+      }
+
+      body {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        min-height: 100vh;
+        color: #f8fafc;
+      }
+
+      .glass-card {
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
+      }
+
+      .glass-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3);
+      }
+
+      .progress-ring {
+        transition: stroke-dashoffset 0.5s;
+        transform: rotate(-90deg);
+      }
+
+      .modal {
+        transition: opacity 0.3s ease, transform 0.3s ease;
+      }
+
+      .habit-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .habit-card:active {
+        transform: scale(0.98);
+      }
+
+      .floating-btn {
+        box-shadow: 0 8px 24px rgba(245, 158, 11, 0.3);
+        transition: all 0.3s ease;
+      }
+
+      .floating-btn:active {
+        transform: scale(0.95) rotate(180deg);
+      }
+
+      /* Animation for new habit cards */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .fade-in {
+        animation: fadeIn 0.5s ease forwards;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen pb-20">
+    <!-- Header -->
+    <header
+      class="container mx-auto px-4 py-6 flex justify-between items-center"
+    >
+      <div>
+        <h1 class="text-2xl font-bold text-gold">Habit Tracker</h1>
+        <p class="text-platinum/60">Your progress companion</p>
+      </div>
+      <div
+        class="w-10 h-10 rounded-full bg-glass flex items-center justify-center"
+      >
+        <i class="fas fa-user text-gold"></i>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4">
+      <!-- Stats Summary -->
+      <div class="glass-card p-6 mb-8">
+        <div class="flex justify-between items-center">
+          <div>
+            <p class="text-platinum/60">Total Habits</p>
+            <p id="totalHabits" class="text-3xl font-bold">0</p>
+          </div>
+          <div>
+            <p class="text-platinum/60">Longest Streak</p>
+            <p id="longestStreak" class="text-3xl font-bold">0 days</p>
+          </div>
+          <div
+            class="w-14 h-14 bg-success rounded-full flex items-center justify-center"
+          >
+            <i class="fas fa-trophy text-xl text-midnight"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Habits Container -->
+      <div
+        id="habitsContainer"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+      >
+        <!-- Habit cards will be added here -->
+        <div
+          class="glass-card p-6 flex flex-col items-center justify-center text-center py-10"
+        >
+          <div
+            class="w-24 h-24 rounded-full bg-glass-dark flex items-center justify-center mb-4"
+          >
+            <i class="fas fa-plus text-3xl text-gold"></i>
+          </div>
+          <h3 class="text-lg font-semibold">No habits yet</h3>
+          <p class="text-platinum/60 mt-2">
+            Add your first habit to start tracking
+          </p>
+        </div>
+      </div>
+    </main>
+
+    <!-- Add Habit Button -->
+    <button
+      id="addHabitBtn"
+      class="floating-btn fixed bottom-6 right-6 w-16 h-16 rounded-full bg-gold flex items-center justify-center text-midnight text-2xl"
+    >
+      <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- Add Habit Modal -->
+    <div
+      id="addHabitModal"
+      class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 opacity-0 pointer-events-none modal"
+    >
+      <div
+        class="glass-card w-full max-w-md p-6 transform transition-transform"
+      >
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold">Add New Habit</h2>
+          <button
+            id="closeModal"
+            class="w-8 h-8 rounded-full bg-glass flex items-center justify-center"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <form id="habitForm">
+          <div class="mb-5">
+            <label for="habitName" class="block text-platinum/80 mb-2"
+              >Habit Name</label
+            >
+            <input
+              type="text"
+              id="habitName"
+              required
+              class="w-full bg-glass-dark border border-platinum/20 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-gold"
+            />
+          </div>
+
+          <div class="mb-6">
+            <label for="habitDescription" class="block text-platinum/80 mb-2"
+              >Description (Optional)</label
+            >
+            <textarea
+              id="habitDescription"
+              rows="3"
+              class="w-full bg-glass-dark border border-platinum/20 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-gold"
+            ></textarea>
+          </div>
+
+          <button
+            type="submit"
+            class="w-full bg-gold text-midnight py-3 rounded-xl font-semibold"
+          >
+            Save Habit
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Edit Habit Modal -->
+    <div
+      id="editHabitModal"
+      class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 opacity-0 pointer-events-none modal"
+    >
+      <div
+        class="glass-card w-full max-w-md p-6 transform transition-transform"
+      >
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold">Edit Habit</h2>
+          <button
+            id="closeEditModal"
+            class="w-8 h-8 rounded-full bg-glass flex items-center justify-center"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <form id="editHabitForm">
+          <input type="hidden" id="editHabitId" />
+
+          <div class="mb-5">
+            <label for="editHabitName" class="block text-platinum/80 mb-2"
+              >Habit Name</label
+            >
+            <input
+              type="text"
+              id="editHabitName"
+              required
+              class="w-full bg-glass-dark border border-platinum/20 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-gold"
+            />
+          </div>
+
+          <div class="mb-6">
+            <label
+              for="editHabitDescription"
+              class="block text-platinum/80 mb-2"
+              >Description</label
+            >
+            <textarea
+              id="editHabitDescription"
+              rows="3"
+              class="w-full bg-glass-dark border border-platinum/20 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-gold"
+            ></textarea>
+          </div>
+
+          <div class="flex gap-3">
+            <button
+              type="button"
+              id="deleteHabitBtn"
+              class="flex-1 bg-red-500/20 text-red-400 py-3 rounded-xl font-semibold"
+            >
+              Delete
+            </button>
+            <button
+              type="submit"
+              class="flex-1 bg-gold text-midnight py-3 rounded-xl font-semibold"
+            >
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // DOM Elements
+        const addHabitBtn = document.getElementById('addHabitBtn');
+        const closeModal = document.getElementById('closeModal');
+        const closeEditModal = document.getElementById('closeEditModal');
+        const addHabitModal = document.getElementById('addHabitModal');
+        const editHabitModal = document.getElementById('editHabitModal');
+        const habitForm = document.getElementById('habitForm');
+        const editHabitForm = document.getElementById('editHabitForm');
+        const habitsContainer = document.getElementById('habitsContainer');
+        const deleteHabitBtn = document.getElementById('deleteHabitBtn');
+        const totalHabitsEl = document.getElementById('totalHabits');
+        const longestStreakEl = document.getElementById('longestStreak');
+
+        // Load habits from localStorage
+        let habits = JSON.parse(localStorage.getItem('habits')) || [];
+
+        // Initialize the app
+        function initApp() {
+          updateStats();
+          renderHabits();
+        }
+
+        // Update statistics
+        function updateStats() {
+          totalHabitsEl.textContent = habits.length;
+
+          // Calculate longest streak
+          const longestStreak = habits.reduce((longest, habit) => {
+            return Math.max(longest, habit.days);
+          }, 0);
+
+          longestStreakEl.textContent = `${longestStreak} days`;
+        }
+
+        // Render all habits
+        function renderHabits() {
+          if (habits.length === 0) {
+            habitsContainer.innerHTML = `
+            <div class="glass-card p-6 flex flex-col items-center justify-center text-center py-10">
+              <div class="w-24 h-24 rounded-full bg-glass-dark flex items-center justify-center mb-4">
+                <i class="fas fa-plus text-3xl text-gold"></i>
+              </div>
+              <h3 class="text-lg font-semibold">No habits yet</h3>
+              <p class="text-platinum/60 mt-2">Add your first habit to start tracking</p>
+            </div>
+          `;
+            return;
+          }
+
+          habitsContainer.innerHTML = '';
+
+          habits.forEach((habit) => {
+            const habitCard = document.createElement('div');
+            habitCard.className = 'habit-card glass-card p-6 fade-in';
+            habitCard.innerHTML = `
+            <div class="flex justify-between items-start mb-4">
+              <h3 class="text-lg font-semibold">${habit.name}</h3>
+              <span class="text-xs text-platinum/40">${formatDate(
+                habit.startDate
+              )}</span>
+            </div>
+            
+            <div class="flex items-center mb-5">
+              <div class="relative mr-4">
+                <svg class="w-20 h-20 progress-ring" viewBox="0 0 100 100">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    fill="transparent"
+                    stroke="rgba(255, 255, 255, 0.1)"
+                    stroke-width="8"
+                  />
+                  <circle
+                    class="progress-ring__circle"
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    fill="transparent"
+                    stroke="${getProgressColor(habit.days)}"
+                    stroke-width="8"
+                    stroke-dasharray="283"
+                    stroke-dashoffset="${
+                      283 - (habit.days > 30 ? 283 : (habit.days / 30) * 283)
+                    }"
+                  />
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center flex-col">
+                  <span class="text-2xl font-bold">${habit.days}</span>
+                  <span class="text-xs text-platinum/60">days</span>
+                </div>
+              </div>
+              
+              <div class="flex-1">
+                <p class="text-platinum/60 text-sm mb-2">${
+                  habit.description || 'No description'
+                }</p>
+                <div class="flex items-center text-xs text-platinum/40">
+                  <i class="fas fa-calendar-alt mr-1"></i>
+                  <span>Started ${formatDateShort(habit.startDate)}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="flex justify-between items-center">
+              <span class="text-sm ${
+                habit.days > 1 ? 'text-success' : 'text-gold'
+              }">
+                <i class="fas ${
+                  habit.days > 1 ? 'fa-fire' : 'fa-seedling'
+                } mr-1"></i>
+                ${getStreakMessage(habit.days)}
+              </span>
+              <span class="text-xs text-platinum/40">Tap to edit</span>
+            </div>
+          `;
+
+            habitCard.addEventListener('click', () => openEditModal(habit.id));
+            habitsContainer.appendChild(habitCard);
+          });
+        }
+
+        // Format date to readable string
+        function formatDate(dateString) {
+          const options = { year: 'numeric', month: 'short', day: 'numeric' };
+          return new Date(dateString).toLocaleDateString(undefined, options);
+        }
+
+        // Format date to short readable string
+        function formatDateShort(dateString) {
+          const now = new Date();
+          const startDate = new Date(dateString);
+          const diffTime = Math.abs(now - startDate);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+          if (diffDays === 1) return 'today';
+          if (diffDays === 2) return 'yesterday';
+          if (diffDays < 7) return `${diffDays - 1} days ago`;
+          if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+
+          return formatDate(dateString);
+        }
+
+        // Get progress ring color based on days
+        function getProgressColor(days) {
+          if (days < 7) return '#F59E0B'; // gold
+          if (days < 21) return '#3B82F6'; // royal blue
+          return '#10B981'; // success green
+        }
+
+        // Get streak message based on days
+        function getStreakMessage(days) {
+          if (days === 1) return 'First day!';
+          if (days < 7) return `${days} day streak`;
+          if (days < 30) return `${days} days strong`;
+          return `${Math.floor(days / 30)} month streak!`;
+        }
+
+        // Open add habit modal
+        addHabitBtn.addEventListener('click', () => {
+          addHabitModal.classList.remove('opacity-0', 'pointer-events-none');
+          document.getElementById('habitName').focus();
+        });
+
+        // Close add habit modal
+        closeModal.addEventListener('click', () => {
+          addHabitModal.classList.add('opacity-0', 'pointer-events-none');
+        });
+
+        // Close edit habit modal
+        closeEditModal.addEventListener('click', () => {
+          editHabitModal.classList.add('opacity-0', 'pointer-events-none');
+        });
+
+        // Handle habit form submission
+        habitForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+
+          const name = document.getElementById('habitName').value.trim();
+          const description = document
+            .getElementById('habitDescription')
+            .value.trim();
+
+          if (name) {
+            const newHabit = {
+              id: Date.now().toString(),
+              name,
+              description,
+              startDate: new Date().toISOString(),
+              days: 1,
+            };
+
+            habits.push(newHabit);
+            saveHabits();
+            renderHabits();
+            updateStats();
+
+            // Reset and close form
+            habitForm.reset();
+            addHabitModal.classList.add('opacity-0', 'pointer-events-none');
+          }
+        });
+
+        // Open edit habit modal
+        function openEditModal(habitId) {
+          const habit = habits.find((h) => h.id === habitId);
+
+          if (habit) {
+            document.getElementById('editHabitId').value = habit.id;
+            document.getElementById('editHabitName').value = habit.name;
+            document.getElementById('editHabitDescription').value =
+              habit.description || '';
+
+            editHabitModal.classList.remove('opacity-0', 'pointer-events-none');
+          }
+        }
+
+        // Handle edit habit form submission
+        editHabitForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+
+          const habitId = document.getElementById('editHabitId').value;
+          const name = document.getElementById('editHabitName').value.trim();
+          const description = document
+            .getElementById('editHabitDescription')
+            .value.trim();
+
+          const habitIndex = habits.findIndex((h) => h.id === habitId);
+
+          if (habitIndex !== -1) {
+            habits[habitIndex].name = name;
+            habits[habitIndex].description = description;
+
+            saveHabits();
+            renderHabits();
+            editHabitModal.classList.add('opacity-0', 'pointer-events-none');
+          }
+        });
+
+        // Handle habit deletion
+        deleteHabitBtn.addEventListener('click', () => {
+          const habitId = document.getElementById('editHabitId').value;
+
+          if (confirm('Are you sure you want to delete this habit?')) {
+            habits = habits.filter((h) => h.id !== habitId);
+            saveHabits();
+            renderHabits();
+            updateStats();
+            editHabitModal.classList.add('opacity-0', 'pointer-events-none');
+          }
+        });
+
+        // Update days for all habits (called once per day)
+        function updateHabitDays() {
+          const today = new Date().toDateString();
+          const lastUpdated = localStorage.getItem('lastUpdated');
+
+          if (lastUpdated !== today) {
+            habits.forEach((habit) => {
+              habit.days += 1;
+            });
+
+            saveHabits();
+            localStorage.setItem('lastUpdated', today);
+            renderHabits();
+            updateStats();
+          }
+        }
+
+        // Save habits to localStorage
+        function saveHabits() {
+          localStorage.setItem('habits', JSON.stringify(habits));
+        }
+
+        // Initialize the app
+        initApp();
+
+        // Check if we need to update days (once per day)
+        updateHabitDays();
+      });
+    </script>
+  </body>
+</html>
